@@ -1,0 +1,32 @@
+---
+- name: Check zimbra paths
+  ansible.builtin.stat:
+    path: /opt/zimbra/jetty_base/
+  register: jettiy_base_path_fsobject
+
+- name: Set 8.8+ path
+  ansible.builtin.set_fact:
+    _jetty_dir_name: "jetty_base"
+  when: jettiy_base_path_fsobject.stat.exists
+
+- name: Set pre 8.8 path
+  ansible.builtin.set_fact:
+    _jetty_dir_name: "jetty"
+  when: not jettiy_base_path_fsobject.stat.exists
+
+- name: Patch monthView.tag
+  ansible.builtin.replace:
+    path: /opt/zimbra/{{ _jetty_dir_name }}/webapps/zimbra/WEB-INF/tags/calendar/monthView.tag
+    regexp: '(.*)javascript:dayClick\(event, \"\${monthZoomUrl}\"\);(.*)'
+    replace: '\1javascript:dayClick(event, "${fn:escapeXml(monthZoomUrl)}");\2'
+    backup: yes
+  notify:
+    - Flush Zimbra cache
+- name: Patch multiDay.tag
+  ansible.builtin.replace:
+    path: /opt/zimbra/{{ _jetty_dir_name }}/webapps/zimbra/WEB-INF/tags/calendar/multiDay.tag
+    regexp: '(.*)href=\"\${newAppt}\"(.*)'
+    replace: '\1href="${fn:escapeXml(newAppt)}"\2'
+    backup: yes
+  notify:
+    - Flush Zimbra cache

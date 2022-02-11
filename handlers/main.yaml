@@ -1,0 +1,5 @@
+---
+- name: Flush Zimbra cache
+  ansible.builtin.command: /opt/zimbra/bin/zmprov fc all
+  become: yes
+  become_user: zimbra
